@@ -7,7 +7,14 @@ public class Food : MonoBehaviour
     {
         if (collision.CompareTag("Player"))
         {
-            FoodController.instance.EatFood(gameObject);
+            FoodController.instance.RemoveFood(gameObject, true);
         }
     }
+
+    // ¶¯»­½áÊøÊ±ÒÆ³ý
+    public void DeleteFood()
+    {
+        FoodController.instance.RemoveFood(gameObject, false);
+        Destroy(gameObject);
+    }    
 }

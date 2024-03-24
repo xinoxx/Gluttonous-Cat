@@ -9,8 +9,7 @@ public class FoodController : MonoBehaviour
 
     public Collider2D area;
 
-    public float createTime;   // 生成食物间隔时间
-    public float deleteTime;   // 消除食物间隔时间
+    public int createTime;   // 生成食物间隔时间
 
     [SerializeField]
     private List<GameObject> typeFoods = new(); // 不同种类食物
@@ -19,8 +18,6 @@ public class FoodController : MonoBehaviour
     private GameObject foodPrefab;
     private List<GameObject> foods = new();
     private int allCount = 0;
-    private int timeCount = 0;  // 计时器
-    private float preTimeScale; // 初始TimeScale
     private readonly Dictionary<string, int> foodsScore = new Dictionary<string, int>{ { "Food1(Clone)", 1}, { "Food2(Clone)", 2 }, { "Food3(Clone)", 3 } };
 
     private void Awake()
@@ -29,18 +26,8 @@ public class FoodController : MonoBehaviour
         instance = this;
     }
 
-    void Start()
-    {
-    }
-
-    void Update()
-    {
-        DeleteItem();
-    }
-
     public void Init()
     {
-        preTimeScale = GameManager.instance.GetGameTimeScale();
         playerPos = PlayerController.instance.GetBodys();
         for (int i = 0; i < foods.Count; i++)
         {
@@ -56,7 +43,7 @@ public class FoodController : MonoBehaviour
         foodPrefab = GetFood();
         GameObject newFood = Instantiate(foodPrefab);
 
-        bool findPos = true;  // 防止食物生成在player身上
+        bool findPos = true;
         int randomCount = 0;
         while (findPos)
         {
@@ -66,29 +53,28 @@ public class FoodController : MonoBehaviour
             newX = Mathf.Round(newX * 10.0f) / 10;
             newY = Mathf.Round(newY * 10.0f) / 10;
             Vector3 pos = new (newX, newY, 0);
+
             findPos = false;
-            for (int i = 0; i < playerPos.Count; i++)
+            // 防止生成位置与Player重叠
+            float playerX = playerPos[0].position.x;
+            float playerY = playerPos[0].position.y;
+            if (pos.x >= playerX - 0.5f && pos.x <= playerX + 0.5f) { findPos = true; }
+            if (pos.y >= playerY - 0.5f && pos.y <= playerY + 0.5f) { findPos = true; }
+
+            if (!findPos) // 防止生成位置与食物重叠
             {
-                float playerX = playerPos[i].position.x;
-                float playerY = playerPos[i].position.y;
-                if (pos.x >= playerX - 0.5f && pos.x <= playerX + 0.5f) { findPos = true; break; }
-                if (pos.y >= playerY - 0.5f && pos.y <= playerY + 0.5f) { findPos = true; break; }
+                for (int i = 0; i < foods.Count; i++)
+                {
+                    float foodX = foods[i].transform.position.x;
+                    float foodY = foods[i].transform.position.y;
+                    if (pos.x >= foodX - 0.3f && pos.x <= foodX + 0.3f) { findPos = true; break; }
+                    if (pos.y >= foodY - 0.3f && pos.y <= foodY + 0.3f) { findPos = true; break; }
+                }
             }
             newFood.transform.position = pos;
-            if (randomCount >= 10000) break;
+            if (randomCount >= 10000) break; // FIX：防止无限循环，待优化
         }
         foods.Add(newFood);
-    }
-
-    private void DeleteItem()
-    {
-        if (Time.time > timeCount * preTimeScale) timeCount += 1;
-        if (foods.Count > 0 && timeCount % ((int)(deleteTime / preTimeScale)) == 0)
-        {
-            timeCount += 1;
-            Destroy(foods[0]);
-            foods.RemoveAt(0);  // 移除队首食物
-        }
     }
 
     private GameObject GetFood()
@@ -101,8 +87,8 @@ public class FoodController : MonoBehaviour
         return typeFoods[index];
     }
 
-    // 移除被吃掉的食物
-    public void EatFood(GameObject food)
+    // 移除食物
+    public void RemoveFood(GameObject food, bool isEat)
     {
         for(int i = 0; i < foods.Count; i++)
         {
@@ -110,8 +96,11 @@ public class FoodController : MonoBehaviour
             {
                 Destroy(food);
                 foods.RemoveAt(i);
-                UIManager.Instance.AddScore(foodsScore[food.name]);
-                AudioManager.instance.PlayEatAudio();
+                if (isEat)
+                {
+                    UIManager.Instance.AddScore(foodsScore[food.name]);
+                    AudioManager.instance.PlayEatAudio();
+                }
                 break;
             }
         }
@@ -119,7 +108,7 @@ public class FoodController : MonoBehaviour
 
     public void StartTimer()
     {
-        InvokeRepeating(nameof(CreateItem), 0.02f, createTime); // 重复生成食物
+        InvokeRepeating(nameof(CreateItem), 0.01f, createTime); // 重复生成食物
     }
 
     public void CancleTimer()

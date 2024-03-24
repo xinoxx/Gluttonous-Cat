@@ -6,9 +6,9 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
+    public int gamePlaySpeed; // 模拟游戏运动速度
 
-    [SerializeField]
-    private float gameTimeScale;
+    private int oriGamePlaySpeed = 0;
 
     private void Awake()
     {
@@ -19,13 +19,14 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        oriGamePlaySpeed = gamePlaySpeed;
         Time.timeScale = 0;
         UIManager.Instance.ShowMainMenu();
     }
 
     public void StartGame()
     {
-        Time.timeScale = gameTimeScale;
+        Time.timeScale = 1;
         PlayerController.instance.Init();
         FoodController.instance.Init();
     }
@@ -34,7 +35,7 @@ public class GameManager : MonoBehaviour
     {
         Time.timeScale = 0;
         FoodController.instance.CancleTimer();
-        UIManager.Instance.ShowMainMenu();
+        UIManager.Instance.ShowEndMenu();
     }
 
     public void ExitGame()
@@ -42,8 +43,9 @@ public class GameManager : MonoBehaviour
         Application.Quit();
     }
 
-    public float GetGameTimeScale()
-    {
-        return gameTimeScale;
-    }    
+    public int GetGameSpeed() { return gamePlaySpeed; }
+
+    public void SetGameSpeed(int speed) {  gamePlaySpeed = speed; }
+
+    public void ResetGameSpeed() { gamePlaySpeed = oriGamePlaySpeed; }
 }
